@@ -1,0 +1,232 @@
+"""
+Zero-shot evaluation of CLIP model on hands dataset for person identification based on hand images.
+"""
+import argparse
+import os
+
+import torch
+import torch.backends.cudnn as cudnn
+from torchvision import datasets, transforms
+import scipy.io
+
+from evaluation_metrics import compute_CMC_mAP
+# from model.clip import clip
+from clip import clip  # For this, please install clip following https://github.com/openai/CLIP
+
+
+# Load model
+def load_network(network, args):
+    save_path = os.path.join(args.f_name, args.m_name, 'net_%s.pth' % args.which_epoch)  # Make sure which model to use!
+    network.load_state_dict(torch.load(save_path))
+    return network
+
+
+# Flip image
+def fliplr(img):
+    """
+    Flip horizontal
+    """
+    inv_idx = torch.arange(img.size(3) - 1, -1, -1).long()  # N x C x H x W
+    img_flip = img.index_select(3, inv_idx)
+    return img_flip
+
+
+# Extract feature from a trained model.# Extract feature from  a trained model.
+def extract_feature(model, data_loaders, args):
+    features = torch.FloatTensor()
+    count = 0
+    for data in data_loaders:
+        img, label = data
+        n, c, h, w = img.size()
+        count += n
+        print(count)
+
+        if args.backbone_name == 'RN50':
+            features_dim = 1024  # For CLIP, ResNet50
+        elif args.backbone_name == 'ViT-B/16':
+            features_dim = 512  # For CLIP, vit-16
+
+        ff = torch.FloatTensor(n, features_dim).zero_().cuda()
+        for i in range(2):
+            if i == 1:
+                img = fliplr(img)
+            input_img = img.cuda()
+
+            output_ffs = model.encode_image(input_img)  # Using CLIP
+
+            ff += output_ffs
+
+        # Normalize feature
+        ff_norm = torch.norm(ff, p=2, dim=1, keepdim=True)
+        ff = ff.div(ff_norm.expand_as(ff))
+
+        features = torch.cat((features, ff.data.cpu()), 0)
+    return features
+
+
+# Get ids
+def get_id(img_path):
+    labels = []
+    for path, v in img_path:
+        # filename = os.path.basename(path)
+        # label = filename.split('_')[0]
+        if os.name == 'nt':
+            label = path.split('\\')[-2]  # For 11k hand data set, on Windows
+        else:
+            label = path.split('/')[-2]  # For 11k hand data set, on Linux
+        labels.append(int(label))
+    return labels
+
+
+# Options
+def main():
+    parser = argparse.ArgumentParser(description='Testing a trained ResNet50 with MBA model for hand identification as '
+                                                 'part of a H-Unique project.')
+    parser.add_argument('--test_dir',
+                        default='./11k/train_val_test_split_dorsal_r',
+                        type=str,
+                        help=' Path to test_data: '
+                             './11k/train_val_test_split_dorsal_r'  './11k/train_val_test_split_dorsal_l'
+                             './11k/train_val_test_split_palmar_r'  './11k/train_val_test_split_palmar_l'  # For 11k
+                             './HD/Original Images/train_val_test_split')  # For HD
+    parser.add_argument('--f_name', default='./model_11k_d_r', type=str,
+                        help='Output folder name - '
+                             './model_11k_d_r  ./model_11k_d_l  ./model_11k_p_r  ./model_11k_p_l'  # For 11k
+                             'or ./model_HD'  # For HD
+                             'Note: Adjust the data-type in opts.yaml when evaluating cross-domain performance.')
+    parser.add_argument('--batch_size', default=50, type=int, help='batch_size')  # 256, 50, 14
+    parser.add_argument('--num_workers', default=0, type=int,
+                        help='Number of workers to use: 0, 8, etc. Setting to 8 workers may run faster.')
+    parser.add_argument('--gpu_ids', default='0', type=str, help='gpu_ids: e.g. 0  0,1,2  0,2')
+
+    # For CLIP
+    parser.add_argument('--backbone_name', default='RN50', type=str,
+                        help='Used backbone model name - RN50 for ResNet50 or ViT-B/16 for Vision Transformer.')
+
+    # Args
+    args = parser.parse_args()
+
+    # Set data type: 11k or HD
+    args.data_type = args.test_dir.split('/')[1]
+
+    # =--------------------
+
+    str_ids = args.gpu_ids.split(',')
+    gpu_ids = []
+    for str_id in str_ids:
+        id = int(str_id)
+        if id >= 0:
+            gpu_ids.append(id)
+
+    # Set GPU ids
+    if len(gpu_ids) > 0:
+        torch.cuda.set_device(gpu_ids[0])
+        cudnn.benchmark = True
+
+    # Load Data: We will use torchvision and torch.utils.data packages for loading the data, with appropriate
+    # transforms.
+    data_transforms = transforms.Compose([
+        transforms.Resize((224, 224), transforms.InterpolationMode.BICUBIC),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
+
+    data_dir = args.test_dir
+
+    # -----------------------------------
+    # Choose computation device
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+    # Load pre-trained CLIP model and preprocessor
+    if args.backbone_name == 'RN50':
+        model, preprocess = clip.load("RN50", device=device)
+        # Typical output: Rank@1:0.6578 Rank@5:0.7997 Rank@10:0.8524 mAP:0.6910
+    elif args.backbone_name == 'ViT-B/16':
+        model, preprocess = clip.load("ViT-B/16", device=device)  # Must set jit=False for training
+        # Typical output: Rank@1:0.7044 Rank@5:0.8723 Rank@10:0.9157 mAP:0.7431
+    else:
+        ValueError('Set the backbone name to RN50 or ViT-B/16. We used these models for comparison with the '
+                   'their fine-tuned models counterparts.')
+    # ----------------------------
+
+    # For N = 10 Monte Carlo runs
+    # You can change the data_type in opts.yaml if you want to perform cross-domain performance evaluation!
+    if args.data_type == '11k':
+        galleries = ['gallery0_all', 'gallery1_all', 'gallery2_all', 'gallery3_all', 'gallery4_all', 'gallery5_all',
+                     'gallery6_all', 'gallery7_all', 'gallery8_all', 'gallery9_all']  # For 11k
+    elif args.data_type == 'HD':
+        galleries = ['gallery0', 'gallery1', 'gallery2', 'gallery3', 'gallery4', 'gallery5', 'gallery6', 'gallery7',
+                     'gallery8', 'gallery9']   # For HD
+    else:
+        print('Please choose the correct data type!')
+        exit()
+
+    queries = ['query0', 'query1', 'query2', 'query3', 'query4', 'query5', 'query6', 'query7', 'query8', 'query9']
+
+    print('-------Test has started ------------------')
+
+    # To save the result of zero-shot evaluation
+    folder_name = os.path.join(args.f_name, 'clip_zero_shot', args.backbone_name)
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+
+    CMC_total = 0
+    mAP_total = 0
+    for i in range(len(galleries)):
+        g = galleries[i]
+        q = queries[i]
+
+        # image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms) for x in [g, q]}
+        image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), preprocess) for x in [g, q]}
+        data_loaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=args.batch_size,
+                                                       shuffle=False, num_workers=args.num_workers) for x in [g, q]}
+
+        gallery_path = image_datasets[g].imgs
+        query_path = image_datasets[q].imgs
+
+        gallery_label = get_id(gallery_path)
+        query_label = get_id(query_path)
+
+        # Extract feature
+        with torch.no_grad():
+            gallery_feature = extract_feature(model, data_loaders[g], args)
+            query_feature = extract_feature(model, data_loaders[q], args)
+
+        # Save to Matlab for check
+        result_fl = {'gallery_f': gallery_feature.numpy(), 'gallery_label': gallery_label,
+                     'query_f': query_feature.numpy(), 'query_label': query_label}
+        scipy.io.savemat('result.mat', result_fl)
+
+        # print(args.m_name)
+        # result = '%s/%s/result.txt' % (args.f_name, args.m_name)
+        result = '%s/result.txt' % (folder_name)
+        # os.system('python3 compute_accuracy.py | tee -a %s' % result_file)
+        # os.system('python3 compute_CMC_mAP.py | tee -a %s' % result)
+
+        CMC_i, mAP_i = compute_CMC_mAP(result_fl)
+        CMC_total += CMC_i
+        mAP_total += mAP_i
+
+        print('Result on %s and %s is:' % (g, q))
+        print('Rank@1:%.4f Rank@5:%.4f Rank@10:%.4f mAP:%.4f' % (CMC_i[0], CMC_i[4], CMC_i[9], mAP_i))
+
+    # Mean over N = 10 Monte Carlo runs
+    CMC = CMC_total/len(galleries)
+    mAP = mAP_total/len(galleries)
+
+    print('\nMean result over N = %s Monte Carlo runs is:' % (len(galleries)))
+    print('Rank@1:%.4f Rank@5:%.4f Rank@10:%.4f mAP:%.4f' % (CMC[0], CMC[4], CMC[9], mAP))
+
+    res = open(result, 'w')
+    res.write('Rank@1:%.4f Rank@5:%.4f Rank@10:%.4f mAP:%.4f' % (CMC[0], CMC[4], CMC[9], mAP))
+
+    # # Save for the later plot
+    # res_cmc = '%s/%s/CMC_gpa.npy' % (args.f_name, args.m_name)  # CMC_gpa.npy, CMC_res50.npy, CMC_vgg.npy
+    # np.save(res_cmc, CMC)
+
+    print('-----Test is complete!------------------')
+
+
+# Execute from the interpreter
+if __name__ == "__main__":
+    main()
