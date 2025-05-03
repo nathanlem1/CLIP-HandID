@@ -60,10 +60,10 @@ def extract_feature(model, data_loaders, args):
             score, features1, features2 = model(input_img)
             if args.use_features_before_neck:
                 output_ffs = features2[0]  # Features before neck_feat (look into make_model_finetune.py for more
-                # details). This gives better result for ViT-B/16.
+                # details).
             else:
                 output_ffs = features2[1]  # Features after neck_feat (look into make_model_finetune.py for more
-                # details). This gives better result for RN50.
+                # details).
 
             ff += output_ffs
 
@@ -116,7 +116,7 @@ def main():
     # For CLIP
     parser.add_argument('--input_size', type=tuple, default=(224, 224), help='Image input size for training and test')
     parser.add_argument('--stride_size', type=tuple, default=(16, 16), help='Stride size for creating image patches')
-    parser.add_argument('--use_features_before_neck', action='store_true', default=True,
+    parser.add_argument('--use_features_before_neck', action='store_true', default=False,
                         help='Which features to use for evaluation: before neck or after neck. Please look into look '
                              'into make_model_finetune.py for more details.')
     # Args
