@@ -225,7 +225,7 @@ def main():
                              './model_11k_d_r'  './model_11k_d_l'  './model_11k_p_r'  './model_11k_p_l')  # For 11k
     parser.add_argument('--data_type', default='11k', type=str, help='Data type: 11k or HD')
     parser.add_argument('--m_name', default='clip_hand_vit', type=str,
-                        help='Output model name - clip_hand_vit OR clip_hand_rs50.')
+                        help='Output model name - clip_hand_vit OR clip_hand_rn50.')
     parser.add_argument('--train_all', action='store_true', help='use all training data')
     parser.add_argument('--batch_size', default=20, type=int, help='batch_size')  # 10, 20, 32, etc
     parser.add_argument('--num_workers', default=0, type=int,

@@ -105,7 +105,7 @@ def main():
                              'or ./model_HD'   # For HD
                              'Note: Adjust the data-type in opts.yaml when evaluating cross-domain performance.')
     parser.add_argument('--m_name', default='clip_hand_vit', type=str,
-                        help='Saved model name - - clip_hand_vit OR clip_hand_rs50.')
+                        help='Saved model name - - clip_hand_vit OR clip_hand_rn50.')
     parser.add_argument('--which_epoch', default='best', type=str, help='0,1,2,3...or best')
     parser.add_argument('--batch_size', default=50, type=int, help='batch_size')  # 256, 50, 14
     parser.add_argument('--num_workers', default=0, type=int,
