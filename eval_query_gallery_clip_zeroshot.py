@@ -100,7 +100,7 @@ def main():
     parser.add_argument('--gpu_ids', default='0', type=str, help='gpu_ids: e.g. 0  0,1,2  0,2')
 
     # For CLIP
-    parser.add_argument('--backbone_name', default='RN50', type=str,
+    parser.add_argument('--backbone_name', default='ViT-B/16', type=str,
                         help='Used backbone model name - RN50 for ResNet50 or ViT-B/16 for Vision Transformer.')
 
     # Args

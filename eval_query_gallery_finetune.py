@@ -104,7 +104,7 @@ def main():
                              './model_11k_d_r  ./model_11k_d_l  ./model_11k_p_r  ./model_11k_p_l'  # For 11k
                              'or ./model_HD'   # For HD
                              'Note: Adjust the data-type in opts.yaml when evaluating cross-domain performance.')
-    parser.add_argument('--m_name', default='clip_hand_rs50', type=str,
+    parser.add_argument('--m_name', default='clip_hand_vit', type=str,
                         help='Saved model name - - clip_hand_vit OR clip_hand_rs50.')
     parser.add_argument('--which_epoch', default='best', type=str, help='0,1,2,3...or best')
     parser.add_argument('--batch_size', default=50, type=int, help='batch_size')  # 256, 50, 14
