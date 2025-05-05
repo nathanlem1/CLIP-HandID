@@ -212,8 +212,8 @@ def freeze_text_encoder(model):
 
 # Options
 def main():
-    parser = argparse.ArgumentParser(description='Training MBA-Net with ResNet50 as a backbone network for hand-based '
-                                                 'person recognition (identification) as part of a H-Unique project.')
+    parser = argparse.ArgumentParser(description="HandID Baseline Training: Fine-tuning CLIP image encoder on hands "
+                                                 "dataset for hand-based person identification.")
     parser.add_argument('--data_dir',
                         default='./11k/train_val_test_split_dorsal_r',
                         type=str, help='Training dir path: ' 

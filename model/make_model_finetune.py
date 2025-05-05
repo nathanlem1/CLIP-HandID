@@ -7,7 +7,6 @@ import torch.nn as nn
 import numpy as np
 from clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
 _tokenizer = _Tokenizer()
-from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 
 
 def weights_init_kaiming(m):
@@ -165,7 +164,8 @@ def load_clip_to_cpu(backbone_name, h_resolution, w_resolution, vision_stride_si
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="HandID Baseline Training: Fine-tuning CLIP image encoder")
+    parser = argparse.ArgumentParser(description="HandID Baseline Training: Fine-tuning CLIP image encoder on hands "
+                                                 "dataset for hand-based person identification.")
     parser.add_argument('--input_size', type=tuple, default=(224, 224), help='')
     parser.add_argument('--stride_size', type=tuple, default=(16, 16), help='')
     parser.add_argument('--backbone_name', default='ViT-B/16', type=str,
