@@ -23,7 +23,7 @@ Git clone this repo and install dependencies to have the same environment config
 the models on a single NVIDIA GeForce RTX 2080 Ti GPU.
 
 ```
-git clone https://github.com/nathanlem1/https://github.com/nathanlem1/CLIP-HandID.git.git
+git clone https://github.com/nathanlem1/CLIP-HandID.git.git
 cd CLIP-HandID
 pip install -r requirements.txt
 ```
@@ -86,11 +86,11 @@ You also need to change the output folder name `clip_hand_vit` to `clip_hand_rn5
 
 ## Evaluate
 
-1. To evaluate using the pretrained model in zero-shot fashion, for instance, on the 11k dorsal right dataset, you need to run the following 
+1. To evaluate using the CLIP pretrained model in zero-shot fashion, for instance, on the 11k dorsal right dataset, you need to run the following 
 code on terminal:
 
 ```
-python eval_query_gallery_clip_zeroshot.py --test_dir ./11k/train_val_test_split_dorsal_r --f_name ./model_11k_d_r --backbone_name ViT-B/16 --m_name clip_hand_vit
+python eval_query_gallery_clip_zeroshot.py --test_dir ./11k/train_val_test_split_dorsal_r --f_name ./model_11k_d_r --backbone_name ViT-B/16 
 ```
 You need to change vision transformer `ViT-B/16` to ResNet50 `RN50` CLIP backbone model to use ResNet50 based CLIP model for image encoder. 
 You also need to change the output folder name `clip_hand_vit` to `clip_hand_rn50` when using `RN50` backbone CLIP image encoder model.  
