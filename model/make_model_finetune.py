@@ -64,10 +64,10 @@ class TextEncoder(nn.Module):
 
 
 class build_transformer(nn.Module):
-    def __init__(self, num_classes, args):  #cfg):
+    def __init__(self, num_classes, args):
         super(build_transformer, self).__init__()
-        # self.model_name = cfg.MODEL.NAME
         self.model_name = args.backbone_name
+        # self.model_name = cfg.MODEL.NAME
         # self.cos_layer = cfg.MODEL.COS_LAYER
         # self.neck = cfg.MODEL.NECK
         # self.neck_feat = cfg.TEST.NECK_FEAT
