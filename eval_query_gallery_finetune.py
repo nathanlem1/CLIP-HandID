@@ -90,8 +90,8 @@ def get_id(img_path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Testing a trained ResNet50 with MBA model for hand identification as '
-                                                 'part of a H-Unique project.')
+    parser = argparse.ArgumentParser(description='Evaluating fine-tuned CLIP image encoder on hands dataset for '
+                                                 'hand-based person identification.')
     parser.add_argument('--test_dir',
                         default='./11k/train_val_test_split_dorsal_r',
                         type=str,
