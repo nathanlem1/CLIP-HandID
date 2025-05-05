@@ -114,8 +114,6 @@ def main():
     parser.add_argument('--gpu_ids', default='0', type=str, help='gpu_ids: e.g. 0  0,1,2  0,2')
 
     # For CLIP
-    parser.add_argument('--input_size', type=tuple, default=(224, 224), help='Image input size for training and test')
-    parser.add_argument('--stride_size', type=tuple, default=(16, 16), help='Stride size for creating image patches')
     parser.add_argument('--use_features_before_neck', action='store_true', default=False,
                         help='Which features to use for evaluation: before neck or after neck. Please look into look '
                              'into make_model_finetune.py for more details.')
@@ -131,12 +129,10 @@ def main():
         config = yaml.load(stream, Loader=yaml.FullLoader)
     args.fp16 = config['fp16']
     args.data_type = config['data_type']
+    args.num_classes = config['num_classes']  # The number of classes the model is trained on!
+    args.input_size = config['input_size']
+    args.stride_size = config['stride_size']
     args.backbone_name = config['backbone_name']
-
-    if 'num_classes' in config:
-        args.num_classes = config['num_classes']  # The number of classes the model is trained on!
-    else:
-        args.num_classes = 251
 
     str_ids = args.gpu_ids.split(',')
     gpu_ids = []
