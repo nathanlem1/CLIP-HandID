@@ -227,7 +227,7 @@ def main():
     parser.add_argument('--m_name', default='clip_hand_vit', type=str,
                         help='Output model name - clip_hand_vit OR clip_hand_rn50.')
     parser.add_argument('--train_all', action='store_true', help='use all training data')
-    parser.add_argument('--batch_size', default=20, type=int, help='batch_size')  # 10, 20, 32, etc
+    parser.add_argument('--batch_size', default=4, type=int, help='batch_size')  # 4, 10, 20, 32, etc
     parser.add_argument('--num_workers', default=0, type=int,
                         help='Number of workers to use: 0, 8, etc. Setting to 8 workers may run faster.')
     parser.add_argument('--color_jitter', action='store_true', default=False, help='use color jitter in training')
