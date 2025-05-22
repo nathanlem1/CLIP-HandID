@@ -166,7 +166,10 @@ def main():
     print('-------Test has started ------------------')
 
     # To save the result of zero-shot evaluation
-    folder_name = os.path.join(args.f_name, 'clip_zero_shot', args.backbone_name)
+    backbone_name = args.backbone_name
+    if args.backbone_name == 'ViT-B/16':
+        backbone_name = 'ViT-B-16'
+    folder_name = os.path.join(args.f_name, 'clip_zero_shot', backbone_name)
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
 
