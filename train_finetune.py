@@ -381,6 +381,7 @@ def main():
 
     # Record every run
     copyfile('./train_finetune.py', dir_name+'/train_finetune.py')
+    copyfile('./model/make_model_finetune.py', dir_name + '/make_model_finetune.py')
 
     # Save args
     with open('%s/opts.yaml' % dir_name, 'w') as fp:
