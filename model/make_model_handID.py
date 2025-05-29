@@ -1,6 +1,6 @@
 """
-This code adapts CLIP image encoder to fine-tune on hands dataset for person identification based on hand images. The
-text encoder is not used i.e. it is frozen (see in 'train_finetune.py').
+This code adapts CLIP image encoder to handID to train on hands dataset for person identification based on hand images.
+The text encoder is not used i.e. it is frozen (see in 'train_handID.py').
 """
 import math
 import os
