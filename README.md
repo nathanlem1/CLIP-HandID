@@ -17,6 +17,15 @@ The proposed attention modules and the structure of CLIP-HandID are shown below.
 -->
 
 
+The qualitative results of our proposed method are also shown below. 
+
+![](./assets/qualitativeResult_clip_handID.png)
+
+Some qualitative results of our method using query vs ranked results retrieved from gallery are shown in the Fig. above. 
+From top to bottom row are right dorsal of 11k, left dorsal of 11k, right palmar of 11k, left palmar of 11k and HD 
+datasets. The green and red bounding boxes denote the correct and the wrong matches, respectively.
+
+
 ## Installation
 
 Git clone this repo and install dependencies to have the same environment configuration as the one we used. Note that we trained 
