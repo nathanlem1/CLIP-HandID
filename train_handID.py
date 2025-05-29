@@ -11,17 +11,20 @@ import torch.nn as nn
 from torch.optim import lr_scheduler as lrscheduler
 from torchvision import datasets, transforms
 import torch.backends.cudnn as cudnn
+# from torch.cuda import amp   # This can be used (even recommended!) instead of apex.amp
 import yaml
 
 import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use('agg')
 
-from losses.softmax_loss import LabelSmoothingCrossEntropyLoss
+from losses.softmax_loss import LabelSmoothingCrossEntropyLoss, CrossEntropyLabelSmooth, \
+    LabelSmoothingCrossEntropy
+from losses.supcontrast import SupConLoss
 from lr_scheduler import LRScheduler
 from random_erasing import RandomErasing
 
-from model.make_model_finetune import make_model
+from model.make_model_handID import make_model
 
 version = torch.__version__
 
@@ -35,12 +38,15 @@ except ImportError:  # will be 3.x series
           'support (https://github.com/NVIDIA/apex)')
 
 
-def set_seed(seed):
+def set_seed(seed: int = 42):
     """
     Set the random seed for reproducibility across Python, NumPy, and PyTorch.
 
     Parameters:
-        seed (int): The seed value to use.
+        seed (int): The seed value to use. You can set the seed to any fixed value.
+    Read more on:
+        https://docs.pytorch.org/docs/stable/notes/randomness.html
+        https://medium.com/@heyamit10/pytorch-reproducibility-a-practical-guide-d6f573cba679
     """
     # Set the seed for Python's built-in random module
     random.seed(seed)
@@ -51,17 +57,22 @@ def set_seed(seed):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
     # Ensure deterministic behavior in cuDNN (may impact performance)
-    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.deterministic = True  # Disable CuDNN's non-deterministic optimizations.
     torch.backends.cudnn.benchmark = False  # If True, it causes cuDNN to benchmark multiple convolution algorithms and
     # select the fastest. For PyTorch reproducibility, you need to set to False at cost of slightly lower run-time
     # performance but easy for experimentation.
 
-    # Set seed to for os.environ
-    os.environ['PYTHONHASHSEED'] = str(seed)
+    # Avoiding nondeterministic algorithms
+    torch.use_deterministic_algorithms(True)
+
+    # Set seed to for os.environ, which is a mapping object that represents the user’s OS environmental variables.
+    os.environ['PYTHONHASHSEED'] = str(seed) # pythonhashseed is randomly generated when you create a variable in Python
+
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
 
 # Train model
-def train_model(model, loss_fun, lr_scheduler, optimizer, args, data_loaders, num_epochs=70):
+def train_model(model, loss_func, contrast_loss_fn, lr_scheduler, optimizer, args, data_loaders, num_epochs=70):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -75,7 +86,7 @@ def train_model(model, loss_fun, lr_scheduler, optimizer, args, data_loaders, nu
         if args.warmup:
             lr = lr_scheduler.update(epoch)  # Warmup strategy is included.
             optimizer.param_groups[0]['lr'] = lr  # For pretrained layers
-            optimizer.param_groups[1]['lr'] = 10*lr  # For new layers
+            optimizer.param_groups[1]['lr'] = 10*lr  # For new layers, 10*lr, 2*lr
         # --------------------------------
 
         # Each epoch has a training and validation phase
@@ -107,18 +118,30 @@ def train_model(model, loss_fun, lr_scheduler, optimizer, args, data_loaders, nu
                 if phase == 'val':
                     with torch.no_grad():
                         score, features1, features2 = model(inputs)
+                        # score = score[-1]  # To check if txt-img only is working when using interaction_network.
                 else:
                     score, features1, features2 = model(inputs)
+                    # score = score[-1]  # To check if txt-img only is working when using interaction_network.
 
                 if isinstance(score, list):
-                    id_loss = [loss_fun(score_i, labels) for score_i in score[0:]]
+                    id_loss = [loss_func(score_i, labels) for score_i in score[0:]]
                     loss = sum(id_loss)
                 else:
-                    loss = loss_fun(score, labels)
+                    loss = loss_func(score, labels)
+
+                if args.is_learn_prompts:
+                    # Supervised contrastive loss
+                    text_features = features1[0]
+                    image_features = features1[1]
+                    loss_i2t = contrast_loss_fn(image_features, text_features, labels, labels)
+                    loss_t2i = contrast_loss_fn(text_features, image_features, labels, labels)
+                    contr_loss = loss_i2t + loss_t2i
+                    # Sum all the losses
+                    loss = contr_loss + loss
+                    # ----------------------
 
                 if isinstance(score, list):
-                    _, preds = torch.max(score[-1].data, 1)  # Use the score_proj i.e. score[-1], just for prediction
-                    # evaluation.
+                    _, preds = torch.max(score[1].data, 1)  # Use the score_proj
                 else:
                     _, preds = torch.max(score.data, 1)
 
@@ -133,7 +156,7 @@ def train_model(model, loss_fun, lr_scheduler, optimizer, args, data_loaders, nu
                     optimizer.step()
 
                 # Statistics
-                if int(version[0]) > 0 or int(version[2]) > 3:  # for the new version like 0.4.0, 0.5.0 or greater
+                if int(version[0]) > 0 or int(version[2]) > 3:  # for the new version like 0.4.0, 0.5.0 and 1.0.0
                     running_loss += loss.item() * now_batch_size
                 else:  # for the old version like 0.3.0 and 0.3.1
                     running_loss += loss.data[0] * now_batch_size
@@ -174,7 +197,6 @@ def train_model(model, loss_fun, lr_scheduler, optimizer, args, data_loaders, nu
     return model
 
 
-# Draw training curves
 def draw_curve(current_epoch, args):
     x_epoch.append(current_epoch)
     ax0.plot(x_epoch, y_loss['train'], 'bo-', label='train')
@@ -205,15 +227,16 @@ def freeze_text_encoder(model):
                                  during backpropagation.
     """
     for name, param in model.named_parameters():
-        if "text_encoder" in name:
+        if "text_encoder" in name:   # For the default CLIP text encoder OR for the custom CLIP text encoder
             param.requires_grad = False  # Set to False to freeze or set to True to unfreeze (by default it is True)
     return model
 
 
 # Options
 def main():
-    parser = argparse.ArgumentParser(description="HandID Baseline Training: Fine-tuning CLIP image encoder on hands "
-                                                 "dataset for hand-based person identification.")
+    parser = argparse.ArgumentParser(description="HandID Baseline Training: Proposed end-to-end prompt learning and "
+                                                 "CLIP image encoder fine-tuning on hands dataset for hand-based "
+                                                 "person identification.")
     parser.add_argument('--data_dir',
                         default='./11k/train_val_test_split_dorsal_r',
                         type=str, help='Training dir path: ' 
@@ -226,14 +249,16 @@ def main():
     parser.add_argument('--data_type', default='11k', type=str, help='Data type: 11k or HD')
     parser.add_argument('--m_name', default='clip_hand_vit', type=str,
                         help='Output model name - clip_hand_vit OR clip_hand_rn50.')
+    parser.add_argument('--sub_data_type', type=str, default='right dorsal',
+                        help='Sub-data type: right dorsal, left dorsal, right palmar, or left palmar')
     parser.add_argument('--train_all', action='store_true', help='use all training data')
-    parser.add_argument('--batch_size', default=20, type=int, help='batch_size')  # 4, 10, 20, 32, etc
+    parser.add_argument('--batch_size', default=20, type=int, help='batch_size')  # 10, 20, 32, etc
     parser.add_argument('--num_workers', default=0, type=int,
                         help='Number of workers to use: 0, 8, etc. Setting to 8 workers may run faster.')
     parser.add_argument('--color_jitter', action='store_true', default=False, help='use color jitter in training')
     parser.add_argument('--erasing_p', default=0, type=float, help='Random Erasing probability, in [0,1]')
-    parser.add_argument('--ls', action='store_true', default=True,  help='Use label smoothing with cross entropy.')
-    parser.add_argument('--lr', default=0.000005, type=float,  # 0.00035, 0.000005
+    parser.add_argument('--ls', action='store_true', default=True, help='Use label smoothing with cross entropy.')
+    parser.add_argument('--lr', default=0.000005, type=float,   # 0.00035, 0.000005, 0.000005 * 2
                         help='learning rate for new parameters, try 0.015, 0.02, 0.05,'
                         'For pretrained parameters, it is 10 times smaller than this')
     parser.add_argument('--warmup', default=True, action='store_true', help='Use warmup learning strategy.')
@@ -248,6 +273,12 @@ def main():
     # For CLIP
     parser.add_argument('--backbone_name', default='ViT-B/16', type=str,
                         help='Used backbone model name - RN50 for ResNet50 or ViT-B/16 for Vision Transformer.')
+    parser.add_argument('--is_learn_prompts', action='store_true', default=True,
+                        help='For learning prompts: True (learn prompts using textual inversion) or False (just '
+                             'fine-tuning image encoder), See make_model_handID.py for more details.')
+    parser.add_argument('--is_interaction_network', action='store_true', default=False,
+                        help='For using multi-modal interaction network: True (using interaction network) or False '
+                             '(else), See make_model_handID.py for more details.')
     parser.add_argument('--input_size', type=tuple, default=(224, 224), help='Image input size for training and test')
     parser.add_argument('--stride_size', type=tuple, default=(16, 16), help='Stride size for creating image patches')
 
@@ -259,7 +290,7 @@ def main():
 
     # For reproducibility
     if args.is_repr:
-        seed = 3  # You can set the seed to any fixed value.
+        seed = 42  # You can set the seed to any fixed value.
         set_seed(seed)
     else:
         cudnn.benchmark = True  # If True, causes cuDNN to benchmark multiple convolution algorithms and select the
@@ -326,12 +357,21 @@ def main():
                                                    shuffle=True, num_workers=args.num_workers, pin_memory=False)
                     for x in ['train', 'val']}
 
+    # ------------------
+    for x in ['train', 'val']:
+        data_loaders[x].dataset.idx_to_class = dict((v, k) for k, v in data_loaders[x].dataset.class_to_idx.items())
+    # -----------------
+
     class_names = image_datasets['train'].classes
     args.num_classes = len(class_names)
 
     # Instantiate the model
     model = make_model(args, num_class=args.num_classes)
     model = freeze_text_encoder(model)  # Freeze text_encoder i.e. only image_encoder is optimized
+
+    # Casting the entire model to fp32 by model.float() to overcome the image_encoder outputting NaN values. This
+    # happens when using nn.TransformerEncoder in the InteractionNetwork class (at about epoch=30).
+    # model.float()  # It doesn't solve it yet, and hence, we decided to use different implementation.
 
     print(model)
 
@@ -366,7 +406,7 @@ def main():
 
     # Learning rate scheduler
     if args.warmup:
-        lr_scheduler = LRScheduler(base_lr=args.lr, step=[40, 60],
+        lr_scheduler = LRScheduler(base_lr=args.lr, step=[40, 60],  # base_lr=args.lr
                                    factor=0.5, warmup_epoch=10,
                                    warmup_begin_lr=0.01*args.lr)  # Make sure warmup_begin_lr is smaller than base_lr.
     else:
@@ -380,10 +420,10 @@ def main():
         os.mkdir(dir_name)
 
     # Record every run
-    copyfile('./train_finetune.py', dir_name+'/train_finetune.py')
-    copyfile('./model/make_model_finetune.py', dir_name + '/make_model_finetune.py')
+    copyfile('./train_handID.py', dir_name+'/train_handID.py')
+    copyfile('./model/make_model_handID.py', dir_name + '/make_model_handID.py')
 
-    # Save args
+    # Save opts
     with open('%s/opts.yaml' % dir_name, 'w') as fp:
         yaml.dump(vars(args), fp, default_flow_style=False)
 
@@ -399,11 +439,14 @@ def main():
 
     # Define loss function
     if args.ls:
-        loss_fun = LabelSmoothingCrossEntropyLoss()
+        loss_func = LabelSmoothingCrossEntropyLoss()
+        # loss_func, center_criterion = make_loss(cfg, num_classes=args.num_classes)
+        # loss_func = CrossEntropyLabelSmooth()
     else:
-        loss_fun = nn.CrossEntropyLoss()
+        loss_func = nn.CrossEntropyLoss()
+    contrast_loss_fn = SupConLoss()
 
-    # For drawing curves
+    #  For drawing curves
     global y_loss, y_err, x_epoch, fig, ax0, ax1
     y_loss = dict()  # Loss history
     y_loss['train'] = []
@@ -417,7 +460,8 @@ def main():
     ax1 = fig.add_subplot(122, title="top1err")
 
     # Train and save the best model
-    model = train_model(model, loss_fun, lr_scheduler, optimizer_ft, args, data_loaders, num_epochs=70)  # 60, 70, 200
+    model = train_model(model, loss_func, contrast_loss_fn, lr_scheduler, optimizer_ft, args, data_loaders,
+                        num_epochs=70)  # 60, 70, 200
 
 
 # Execute from the interpreter
