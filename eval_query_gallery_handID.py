@@ -105,13 +105,13 @@ def main():
     parser = argparse.ArgumentParser(description='Evaluating the proposed HandID model on hands dataset for hand-based '
                                                  'person identification.')
     parser.add_argument('--test_dir',
-                        default='./HD/Original Images/train_val_test_split',
+                        default='./11k/train_val_test_split_dorsal_r',
                         type=str,
                         help=' Path to test_data: '
                              './11k/train_val_test_split_dorsal_r'  './11k/train_val_test_split_dorsal_l'
                              './11k/train_val_test_split_palmar_r'  './11k/train_val_test_split_palmar_l'  # For 11k
                              './HD/Original Images/train_val_test_split')  # For HD
-    parser.add_argument('--f_name', default='./model_HD', type=str,
+    parser.add_argument('--f_name', default='./model_11k_d_r', type=str,
                         help='Output folder name - '
                              './model_11k_d_r  ./model_11k_d_l  ./model_11k_p_r  ./model_11k_p_l'  # For 11k
                              'or ./model_HD'   # For HD
