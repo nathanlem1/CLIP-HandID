@@ -9,7 +9,7 @@ import yaml
 
 from evaluation_metrics import compute_CMC_mAP
 
-from model.make_model_finetune import make_model
+from model.make_model_handID import make_model
 
 
 try:
@@ -47,9 +47,21 @@ def extract_feature(model, data_loaders, args):
         print(count)
 
         if args.backbone_name == 'RN50':
-            features_dim = 3072  # For CLIP, ResNet50
+            if args.is_learn_prompts:
+                features_dim = 3072  # 1024, For CLIP, ResNet50
+                if args.is_interaction_network:
+                    features_dim = 4096  # For CLIP, ResNet50, when using text and image
+            else:
+                features_dim = 3072  # 1024, For CLIP, ResNet50
         elif args.backbone_name == 'ViT-B/16':
-            features_dim = 1280  # For CLIP, vit-16
+            if args.is_learn_prompts:
+                features_dim = 1280  # 512, For CLIP, vit-16
+                if args.is_interaction_network:
+                    features_dim = 1792  # For CLIP, vit-16, when using text and image
+            else:
+                features_dim = 1280  # 512, For CLIP, vit-16
+        else:
+            raise ValueError('Set the backbone name to either RN50 or iT-B/16.')
 
         ff = torch.FloatTensor(n, features_dim).zero_().cuda()
         for i in range(2):
@@ -59,11 +71,11 @@ def extract_feature(model, data_loaders, args):
 
             score, features1, features2 = model(input_img)
             if args.use_features_before_neck:
-                output_ffs = features2[0]  # Features before neck_feat (look into make_model_finetune.py for more
+                output_ffs = features2[0]  # Features before neck_feat (look into make_model_handID.py for more
                 # details).
             else:
-                output_ffs = features2[1]  # Features after neck_feat (look into make_model_finetune.py for more
-                # details).
+                output_ffs = features2[1]  # Features after neck_feat (look into make_model_handID.py for more
+                # details). Proj ony gives best result i.e. features2[1][:, 2048:3072]
 
             ff += output_ffs
 
@@ -90,21 +102,21 @@ def get_id(img_path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Evaluating fine-tuned CLIP image encoder on hands dataset for '
-                                                 'hand-based person identification.')
+    parser = argparse.ArgumentParser(description='Evaluating the proposed HandID model on hands dataset for hand-based '
+                                                 'person identification.')
     parser.add_argument('--test_dir',
-                        default='./11k/train_val_test_split_dorsal_r',
+                        default='./HD/Original Images/train_val_test_split',
                         type=str,
                         help=' Path to test_data: '
                              './11k/train_val_test_split_dorsal_r'  './11k/train_val_test_split_dorsal_l'
                              './11k/train_val_test_split_palmar_r'  './11k/train_val_test_split_palmar_l'  # For 11k
                              './HD/Original Images/train_val_test_split')  # For HD
-    parser.add_argument('--f_name', default='./model_11k_d_r', type=str,
+    parser.add_argument('--f_name', default='./model_HD', type=str,
                         help='Output folder name - '
                              './model_11k_d_r  ./model_11k_d_l  ./model_11k_p_r  ./model_11k_p_l'  # For 11k
                              'or ./model_HD'   # For HD
                              'Note: Adjust the data-type in opts.yaml when evaluating cross-domain performance.')
-    parser.add_argument('--m_name', default='clip_hand_vit', type=str,
+    parser.add_argument('--m_name', default='clip_hand_vit4_1', type=str,
                         help='Saved model name - clip_hand_vit OR clip_hand_rn50.')
     parser.add_argument('--which_epoch', default='best', type=str, help='0,1,2,3...or best')
     parser.add_argument('--batch_size', default=50, type=int, help='batch_size')  # 256, 50, 14
@@ -116,7 +128,8 @@ def main():
     # For CLIP
     parser.add_argument('--use_features_before_neck', action='store_true', default=False,
                         help='Which features to use for evaluation: before neck or after neck. Please look into look '
-                             'into make_model_finetune.py for more details.')
+                             'into make_model_handID.py for more details.')
+
     # Args
     args = parser.parse_args()
 
@@ -133,6 +146,8 @@ def main():
     args.input_size = config['input_size']
     args.stride_size = config['stride_size']
     args.backbone_name = config['backbone_name']
+    args.is_learn_prompts = config['is_learn_prompts']
+    args.is_interaction_network = config['is_interaction_network']
 
     str_ids = args.gpu_ids.split(',')
     gpu_ids = []
@@ -159,6 +174,7 @@ def main():
     # Load Collected data Trained model
     print('-------Test has started ------------------')
 
+    # model_structure = make_model(cfg, num_class=args.num_classes)
     model_structure = make_model(args, num_class=args.num_classes)
 
     model = load_network(model_structure, args)
