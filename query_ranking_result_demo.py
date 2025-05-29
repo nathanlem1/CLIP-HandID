@@ -37,7 +37,7 @@ def imshow(path, title=None):
 
 def main():
     parser = argparse.ArgumentParser(description='Demo of retrieving ranked results given an index of a query image.')
-    parser.add_argument('--query_index', default=115, type=int,
+    parser.add_argument('--query_index', default=125, type=int,  # 225
                         help='test_image_index, eg. 0 - 971 for dorsal right, 0 - 988 for dorsal left, '
                              '0 - 917 for palmar right, 0 - 948 for palmar left, or 0 - 1992 for HD')
     parser.add_argument('--test_dir', default='./11k/train_val_test_split_dorsal_r', type=str,
@@ -55,14 +55,15 @@ def main():
     query = 'query0'
     image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x)) for x in [gallery, query]}
 
-    # Load saved files - choose this correctly! The filename, e.g. result_mba_dr.mat, is obtained by changing from
-    # result.mat after running on 11k dorsal right.
+    # Load saved files - choose this correctly! Run this script just after running 'eval_query_gallery_handID.py' to
+    # get result.mat. The filename, e.g. result_mba_dr.mat, is obtained by changing from result.mat after running on
+    # 11k dorsal right.
     result = scipy.io.loadmat('result.mat')
-    # result = scipy.io.loadmat('result_mba_dr.mat')   # For 11k dorsal right
-    # result = scipy.io.loadmat('result_mba_dl.mat')  # For 11k dorsal left
-    # result = scipy.io.loadmat('result_mba_pr.mat')  # For 11k palmar right
-    # result = scipy.io.loadmat('result_mba_pl.mat')  # For 11k palmar left
-    # result = scipy.io.loadmat('result_mba_hd.mat')  # For HD
+    # result = scipy.io.loadmat('result_dr.mat')   # For 11k dorsal right
+    # result = scipy.io.loadmat('result_dl.mat')  # For 11k dorsal left
+    # result = scipy.io.loadmat('result_pr.mat')  # For 11k palmar right
+    # result = scipy.io.loadmat('result_pl.mat')  # For 11k palmar left
+    # result = scipy.io.loadmat('result_hd.mat')  # For HD
 
     query_feature = torch.FloatTensor(result['query_f'])
     query_label = result['query_label'][0]
