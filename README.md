@@ -17,15 +17,11 @@ as input to the text encoder of the CLIP to leverage its multi-modal reasoning t
 identification. Through extensive evaluations on two large, publicly available hand datasets with multi-ethnic 
 representation, we show that our method substantially surpasses existing approaches.
 
-The proposed structure of CLIP-HandID is shown below.
-
-a) Channel Attention Module (CAM):
+The proposed CLIP-HandID structure is shown below.
 
 ![](./assets/CLIP_HandID.png)
 
-The qualitative results of our proposed method are also shown below. 
-
-The qualitative results of our proposed method are also shown below. 
+The qualitative results of our proposed method are also shown below.
 
 ![](./assets/qualitativeResult_clip_handID.png)
 
