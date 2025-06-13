@@ -79,7 +79,7 @@ python prepare_train_val_test_hd.py
 To train on the 11k dorsal right dataset, you need to run the following code on terminal:  
 
 ```
-python train_handID.py --data_dir ./11k/train_val_test_split_dorsal_r --f_name ./model_11k_d_r --data_type 11k --backbone_name ViT-B/16 --m_name clip_hand_vit --is_learn_prompts
+python train_handID.py --data_dir ./11k/train_val_test_split_dorsal_r --f_name ./model_11k_d_r --data_type 11k --backbone_name ViT-B/16 --m_name clip_hand_vit --is_learn_tokens
 ```
 
 Please look into the `train_handID.py` for more details. You need to provide the correct dataset i.e. right dorsal of 11k, left 
@@ -88,7 +88,7 @@ dorsal of 11k, right palmar of 11k, left palmar of 11k or HD dataset. You may ne
 to train the model on `HD` dataset. Thus, to train on the HD dataset, you need to run the following code on terminal:
 
 ```
-python train_handID.py --data_dir ./HD/Original_Images/train_val_test_split --f_name ./model_HD --data_type HD --backbone_name ViT-B/16 --m_name clip_hand_vit --is_learn_prompts
+python train_handID.py --data_dir ./HD/Original_Images/train_val_test_split --f_name ./model_HD --data_type HD --backbone_name ViT-B/16 --m_name clip_hand_vit --is_learn_tokens
 ```
 You need to change vision transformer `ViT-B/16` to ResNet50 `RN50` CLIP backbone model to use ResNet50 based CLIP model for image encoder. 
 You also need to change the output folder name `clip_hand_vit` to `clip_hand_rn50` when using `RN50` backbone CLIP image encoder model.  

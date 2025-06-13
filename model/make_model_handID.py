@@ -95,7 +95,7 @@ class build_transformer(nn.Module):
     def __init__(self, num_classes, args):
         super(build_transformer, self).__init__()
         self.model_name = args.backbone_name
-        self.is_learn_prompts = args.is_learn_prompts
+        self.is_learn_tokens = args.is_learn_tokens
         self.is_interaction_network = args.is_interaction_network
         if self.model_name == 'ViT-B/16':
             self.in_planes = 768
@@ -132,12 +132,12 @@ class build_transformer(nn.Module):
 
         self.image_encoder = clip_model.visual
 
-        if self.is_learn_prompts:
+        if self.is_learn_tokens:
             self.text_encoder = TextEncoderCustom(clip_model)
         else:
             self.text_encoder = TextEncoder(clip_model)
 
-        if self.is_learn_prompts:
+        if self.is_learn_tokens:
             # self.inversion_network_transformer = InversionNetworkTransformer(clip_model, self.in_planes_proj)
             self.inversion_network_mlp = InversionNetworkMLP(self.in_planes_proj, self.in_planes_proj * 4)
             if self.is_interaction_network:
@@ -160,7 +160,7 @@ class build_transformer(nn.Module):
             img_feature = image_features[:, 0]
             img_feature_proj = image_features_proj[:, 0]
 
-        if self.is_learn_prompts:
+        if self.is_learn_tokens:
             # pseudo_token_embeddings = self.inversion_network_transformer(image_features_proj)  # Uses Transformer
             # pseudo_token_embeddings = self.inversion_network_transformer(img_feature_proj)  # Uses Transformer
             pseudo_token_embeddings = self.inversion_network_mlp(img_feature_proj)  # Uses MLP

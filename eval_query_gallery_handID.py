@@ -47,14 +47,14 @@ def extract_feature(model, data_loaders, args):
         print(count)
 
         if args.backbone_name == 'RN50':
-            if args.is_learn_prompts:
+            if args.is_learn_tokens:
                 features_dim = 3072  # 1024, For CLIP, ResNet50
                 if args.is_interaction_network:
                     features_dim = 4096  # For CLIP, ResNet50, when using text and image
             else:
                 features_dim = 3072  # 1024, For CLIP, ResNet50
         elif args.backbone_name == 'ViT-B/16':
-            if args.is_learn_prompts:
+            if args.is_learn_tokens:
                 features_dim = 1280  # 512, For CLIP, vit-16
                 if args.is_interaction_network:
                     features_dim = 1792  # For CLIP, vit-16, when using text and image
@@ -116,7 +116,7 @@ def main():
                              './model_11k_d_r  ./model_11k_d_l  ./model_11k_p_r  ./model_11k_p_l'  # For 11k
                              'or ./model_HD'   # For HD
                              'Note: Adjust the data-type in opts.yaml when evaluating cross-domain performance.')
-    parser.add_argument('--m_name', default='clip_hand_vit4_1', type=str,
+    parser.add_argument('--m_name', default='clip_hand_vit', type=str,
                         help='Saved model name - clip_hand_vit OR clip_hand_rn50.')
     parser.add_argument('--which_epoch', default='best', type=str, help='0,1,2,3...or best')
     parser.add_argument('--batch_size', default=50, type=int, help='batch_size')  # 256, 50, 14
@@ -146,7 +146,7 @@ def main():
     args.input_size = config['input_size']
     args.stride_size = config['stride_size']
     args.backbone_name = config['backbone_name']
-    args.is_learn_prompts = config['is_learn_prompts']
+    args.is_learn_tokens = config['is_learn_tokens']
     args.is_interaction_network = config['is_interaction_network']
 
     str_ids = args.gpu_ids.split(',')

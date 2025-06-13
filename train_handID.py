@@ -129,7 +129,7 @@ def train_model(model, loss_func, contrast_loss_fn, lr_scheduler, optimizer, arg
                 else:
                     loss = loss_func(score, labels)
 
-                if args.is_learn_prompts:
+                if args.is_learn_tokens:
                     # Supervised contrastive loss
                     text_features = features1[0]
                     image_features = features1[1]
@@ -273,8 +273,8 @@ def main():
     # For CLIP
     parser.add_argument('--backbone_name', default='ViT-B/16', type=str,
                         help='Used backbone model name - RN50 for ResNet50 or ViT-B/16 for Vision Transformer.')
-    parser.add_argument('--is_learn_prompts', action='store_true', default=True,
-                        help='For learning prompts: True (learn prompts using textual inversion) or False (just '
+    parser.add_argument('--is_learn_tokens', action='store_true', default=True,
+                        help='For learning pseudo-tokens: True (learn tokens using textual inversion) or False (just '
                              'fine-tuning image encoder), See make_model_handID.py for more details.')
     parser.add_argument('--is_interaction_network', action='store_true', default=False,
                         help='For using multi-modal interaction network: True (using interaction network) or False '
