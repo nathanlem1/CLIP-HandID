@@ -1,21 +1,29 @@
-# CLIP-HandID
-
-This code fine-tunes [CLIP](https://github.com/openai/CLIP) on hands datasets ([11k](https://sites.google.com/view/11khands) 
-and [HD](http://www4.comp.polyu.edu.hk/~csajaykr/knuckleV2.htm)) for hand-based person identification. 
-It also evaluates CLIP pre-trained models on the hands datasets in zero-shot fashion and then compare their performance with 
-their fine-tuned counterparts. We fine-tune the image encoder only by keeping the text-encoder fixed or frozen. We used the 
-vision transformer `ViT-B/16` and ResNet50 `RN50` CLIP backbone models for the experiments.
-
+# CLIP-HandID: Vision-Language Model for Hand-Based Person Identification
 
 <!--
-## Overview
-In this paper, we propose a novel hand-based person recognition method for...
-
-The proposed attention modules and the structure of CLIP-HandID are shown below.
-
-![](./assets/MBA_Net.png)
+Code for the paper [CLIP-HandID: Vision-Language Model for Hand-Based Person Identification](conference or arXiv link) 
+which has been published on [IPTA 2025](https://ipta-conference.com/ipta25/index.php).
 -->
 
+## Overview
+This paper introduces a new approach to person identification based on hand images, designed specifically for criminal 
+investigations. The method is particularly valuable in serious crimes like sexual abuse, where hand images are often the 
+sole identifiable evidence available. Our proposed method, CLIP-HandID, leverages pre-trained foundational vision-language 
+model, particularly CLIP, to efficiently learn discriminative deep feature representations from hand images given as 
+input to the image encoder of CLIP using textual prompts as semantic guidance. We propose to learn pseudo-tokens that 
+represent specific visual contexts or appearance attributes using textual inversion network since labels of hand images 
+are indexes instead text descriptions. The learned pseudo-tokens are incorporated into textual prompts which are given 
+as input to the text encoder of the CLIP to leverage its multi-modal reasoning to enhance its generalization for 
+identification. Through extensive evaluations on two large, publicly available hand datasets with multi-ethnic 
+representation, we show that our method substantially surpasses existing approaches.
+
+The proposed structure of CLIP-HandID is shown below.
+
+a) Channel Attention Module (CAM):
+
+![](./assets/CLIP_HandID.png)
+
+The qualitative results of our proposed method are also shown below. 
 
 The qualitative results of our proposed method are also shown below. 
 
@@ -69,9 +77,6 @@ Then you can run following code to prepare the HD dataset:
 ```
 python prepare_train_val_test_hd.py
 ```
-
-Read more [MBA-Net](https://ieeexplore.ieee.org/abstract/document/9956555) to get more information about the data split i.e. we followed similar data 
-splitting fashion for this repo. 
 
 
 ## Train for fine-tuning
