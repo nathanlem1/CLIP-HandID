@@ -106,7 +106,7 @@ You need to change vision transformer `ViT-B/16` to ResNet50 `RN50` CLIP backbon
 You also need to change the output folder name `clip_hand_vit` to `clip_hand_rn50` when using `RN50` backbone CLIP image encoder model.  
 
 
-2. To evaluate using the finetuned model, for instance, on the 11k dorsal right dataset, you need to run the following code on terminal:
+2. To evaluate using the trained CLIP-HandID model, for instance, on the 11k dorsal right dataset, you need to run the following code on terminal:
 
 ```
 python eval_query_gallery_handID.py --test_dir ./11k/train_val_test_split_dorsal_r --f_name ./model_11k_d_r --m_name clip_hand_vit
