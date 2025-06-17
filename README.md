@@ -1,7 +1,9 @@
 # CLIP-HandID: Vision-Language Model for Hand-Based Person Identification
 
+
+Code for paper [CLIP-HandID: Vision-Language Model for Hand-Based Person Identification](https://arxiv.org/abs/2506.12447).
 <!--
-Code for the paper [CLIP-HandID: Vision-Language Model for Hand-Based Person Identification](conference or arXiv link) 
+Code for paper [CLIP-HandID: Vision-Language Model for Hand-Based Person Identification](conference or arXiv link) 
 which has been published on [IPTA 2025](https://ipta-conference.com/ipta25/index.php).
 -->
 
@@ -124,18 +126,19 @@ You also need to change the output folder name `clip_hand_vit` to `clip_hand_rn5
 3. In addition, you can use `query_ranking_result_demo.py` to produce qualitative results.
 
 
-<!---
 ## Citation
 
 If you use this code for your research, please cite our paper.
 
 ```
-@InProceedings{Nathanael_ICPR2022,
-author = {Baisa, Nathanael L. and Williams, Bryan and Rahmani, Hossein and Angelov, Plamen and Black, Sue},
-title = {Multi-Branch with Attention Network for Hand-Based Person Recognition},
-booktitle = {The 26th International Conference on Pattern Recognition (ICPR)},
-month = {Aug},
-year = {2022}
+@misc{Baisa2025,
+      title={CLIP-HandID: Vision-Language Model for Hand-Based Person Identification}, 
+      author={Nathanael L. Baisa and Babu Pallam and Amudhavel Jayavel},
+      year={2025},
+      eprint={2506.12447},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2506.12447}, 
 }
 ```
--->
+
