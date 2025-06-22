@@ -21,8 +21,8 @@ matplotlib.use('agg')
 from losses.softmax_loss import LabelSmoothingCrossEntropyLoss, CrossEntropyLabelSmooth, \
     LabelSmoothingCrossEntropy
 from losses.supcontrast import SupConLoss
-from lr_scheduler import LRScheduler
-from random_erasing import RandomErasing
+from utils.lr_scheduler import LRScheduler
+from utils.random_erasing import RandomErasing
 
 from model.make_model_handID import make_model
 

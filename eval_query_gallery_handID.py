@@ -7,7 +7,7 @@ from torchvision import datasets, transforms
 import scipy.io
 import yaml
 
-from evaluation_metrics import compute_CMC_mAP
+from utils.evaluation_metrics import compute_CMC_mAP
 
 from model.make_model_handID import make_model
 
