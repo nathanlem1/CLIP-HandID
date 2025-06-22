@@ -9,9 +9,9 @@ import torch.backends.cudnn as cudnn
 from torchvision import datasets, transforms
 import scipy.io
 
-from utils.evaluation_metrics import compute_CMC_mAP
 # from model.clip import clip
 from clip import clip  # For this, please install clip following https://github.com/openai/CLIP
+from utils.evaluation_metrics import compute_CMC_mAP
 
 
 # Load model

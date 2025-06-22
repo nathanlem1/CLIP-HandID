@@ -18,13 +18,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use('agg')
 
+from model.make_model_handID import make_model
+
 from losses.softmax_loss import LabelSmoothingCrossEntropyLoss, CrossEntropyLabelSmooth, \
     LabelSmoothingCrossEntropy
 from losses.supcontrast import SupConLoss
 from utils.lr_scheduler import LRScheduler
 from utils.random_erasing import RandomErasing
-
-from model.make_model_handID import make_model
 
 version = torch.__version__
 
