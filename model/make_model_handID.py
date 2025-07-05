@@ -170,8 +170,9 @@ class build_transformer(nn.Module):
             if self.is_interaction_network:
                 # # --- Multi-modal interaction -----------------
                 # # Method 1
-                # text_features_new = text_features.unsqueeze(1)
-                # text_features_new = text_features_new.expand(image_features_proj.shape)
+                # # text_features_new = text_features.unsqueeze(1).expand(image_features_proj.shape)
+                # # Concatenate text_features and image patches
+                # text_features_new = torch.concat((text_features.unsqueeze(1), image_features_proj[:, 1:]), dim=1)
                 # image_text_features_proj = self.interaction_network(text_features_new, image_features_proj,
                 #                                                      image_features_proj)
                 # img_txt_feature_proj = image_text_features_proj[:, 0, :] #Take first row of 197 (B,197,in_planes_proj]
