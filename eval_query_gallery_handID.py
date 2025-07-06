@@ -12,13 +12,6 @@ from model.make_model_handID import make_model
 from utils.evaluation_metrics import compute_CMC_mAP
 
 
-try:
-    from apex.fp16_utils import *
-except ImportError:  # will be 3.x series
-    print('This is not an error. If you want to use low precision, i.e., fp16, please install the apex with cuda '
-          'support (https://github.com/NVIDIA/apex)')
-
-
 # Load model
 def load_network(network, args):
     save_path = os.path.join(args.f_name, args.m_name, 'net_%s.pth' % args.which_epoch)  # Make sure which model to use!
@@ -122,7 +115,6 @@ def main():
     parser.add_argument('--batch_size', default=50, type=int, help='batch_size')  # 256, 50, 14
     parser.add_argument('--num_workers', default=0, type=int,
                         help='Number of workers to use: 0, 8, etc. Setting to 8 workers may run faster.')
-    parser.add_argument('--fp16', action='store_true', help='use fp16.')
     parser.add_argument('--gpu_ids', default='0', type=str, help='gpu_ids: e.g. 0  0,1,2  0,2')
 
     # For CLIP
@@ -140,7 +132,6 @@ def main():
 
     with open(config_path, 'r') as stream:
         config = yaml.load(stream, Loader=yaml.FullLoader)
-    args.fp16 = config['fp16']
     args.data_type = config['data_type']
     args.num_classes = config['num_classes']  # The number of classes the model is trained on!
     args.input_size = config['input_size']
