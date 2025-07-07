@@ -445,7 +445,7 @@ class InteractionNetwork(nn.Module):
             dim_feedforward=embedding_dim * 4,
             dropout=0.1
         )
-        # # This enforced image_encoder to produce nan values (starting from epoch =30).
+        # # This enforced image_encoder to produce NaN values (starting from epoch =30).
         # self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=2)  # Adjust num_layers: 1, 2, 3, etc.
 
         self.feedforward1 = nn.Linear(embedding_dim, embedding_dim)
