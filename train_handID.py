@@ -11,7 +11,7 @@ import torch.nn as nn
 from torch.optim import lr_scheduler as lrscheduler
 from torchvision import datasets, transforms
 import torch.backends.cudnn as cudnn
-# from torch.cuda import amp   # This can be used (even recommended!) instead of apex.amp
+# from torch.cuda import amp
 import yaml
 
 import matplotlib
@@ -27,15 +27,6 @@ from utils.lr_scheduler import LRScheduler
 from utils.random_erasing import RandomErasing
 
 version = torch.__version__
-
-
-# Use fp16 for faster training with low precision
-try:
-    from apex.fp16_utils import *
-    from apex import amp, optimizers
-except ImportError:  # will be 3.x series
-    print('This is not an error. If you want to use low precision, i.e., fp16, please install the apex with cuda '
-          'support (https://github.com/NVIDIA/apex)')
 
 
 def set_seed(seed: int = 42):
@@ -72,7 +63,7 @@ def set_seed(seed: int = 42):
 
 
 # Train model
-def train_model(model, loss_func, contrast_loss_fn, lr_scheduler, optimizer, args, data_loaders, num_epochs=70):
+def train_model(model, loss_func, contrast_loss_fn, lr_scheduler, optimizer, args, data_loaders, scaler, num_epochs=70):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -119,6 +110,10 @@ def train_model(model, loss_func, contrast_loss_fn, lr_scheduler, optimizer, arg
                     with torch.no_grad():
                         score, features1, features2 = model(inputs)
                         # score = score[-1]  # To check if txt-img only is working when using interaction_network.
+                elif args.fp16 or args.bf16:
+                    with torch.amp.autocast(device_type='cuda', dtype=torch.float16 if args.fp16 else torch.bfloat16):
+                        score, features1, features2 = model(inputs)
+                        # score = score[-1]  # To check if txt-img only is working when using interaction_network.
                 else:
                     score, features1, features2 = model(inputs)
                     # score = score[-1]  # To check if txt-img only is working when using interaction_network.
@@ -147,13 +142,13 @@ def train_model(model, loss_func, contrast_loss_fn, lr_scheduler, optimizer, arg
 
                 # Backward + optimize only if in training phase
                 if phase == 'train':
-                    if args.fp16:  # We use optimizer to backward loss
-                        with amp.scale_loss(loss, optimizer) as scaled_loss:
-                            scaled_loss.backward()
+                    if args.fp16 or args.bf16:  # We use optimizer to backward loss
+                        scaler.scale(loss).backward()
+                        scaler.step(optimizer)  # a safety optimizer.step()
+                        scaler.update()
                     else:
                         loss.backward()
-
-                    optimizer.step()
+                        optimizer.step()
 
                 # Statistics
                 if int(version[0]) > 0 or int(version[2]) > 3:  # for the new version like 0.4.0, 0.5.0 and 1.0.0
@@ -266,8 +261,12 @@ def main():
     parser.add_argument('--optimizer', default='adam', type=str, help='Optimizer to use: sgd, adam or adamW')
     parser.add_argument('--is_repr', action='store_true', default=True,
                         help='For reproducibility during experimentation, for instance, for hyper-parameters tuning.')
-    parser.add_argument('--fp16', action='store_true',
-                        help='Use float16 instead of float32, which will save about 50% memory')
+    parser.add_argument('--fp16', action='store_true', default=False,
+                        help='Use float16 instead of float32, which will save about 50% memory. Set either of '
+                             'fp16 or bf16 to True, not both, automatic mixed precision (amp).')
+    parser.add_argument('--bf16', action='store_true', default=False,
+                        help='Use bfloat16 instead of float32, which will save about 50% memory. Set either of '
+                             'fp16 or bf16 to True, not both, to use automatic mixed precision (amp).')
     parser.add_argument('--gpu_ids', default='0', type=str, help='Which GPUs to use - gpu_ids: e.g. 0  0,1,2  0,2')
 
     # For CLIP
@@ -369,10 +368,6 @@ def main():
     model = make_model(args, num_class=args.num_classes)
     model = freeze_text_encoder(model)  # Freeze text_encoder i.e. only image_encoder is optimized
 
-    # Casting the entire model to fp32 by model.float() to overcome the image_encoder outputting NaN values. This
-    # happens when using nn.TransformerEncoder in the InteractionNetwork class (at about epoch=30).
-    # model.float()  # It doesn't solve it yet, and hence, we decided to use different implementation.
-
     print(model)
 
     # Optimizer - giving greater lr to newly added layers gives slightly better result.
@@ -433,10 +428,6 @@ def main():
         # model = torch.nn.DataParallel(model, device_ids=[0]).cuda()
         model = model.cuda()
 
-    # Use fp16
-    if args.fp16:
-        model, optimizer_ft = amp.initialize(model, optimizer_ft, opt_level="O1")
-
     # Define loss function
     if args.ls:
         loss_func = LabelSmoothingCrossEntropyLoss()
@@ -459,9 +450,12 @@ def main():
     ax0 = fig.add_subplot(121, title="loss")
     ax1 = fig.add_subplot(122, title="top1err")
 
+    # Using torch amp (automatic mixed precision)
+    scaler = torch.cuda.amp.GradScaler()
+
     # Train and save the best model
-    model = train_model(model, loss_func, contrast_loss_fn, lr_scheduler, optimizer_ft, args, data_loaders,
-                        num_epochs=70)  # 60, 70, 200
+    model = train_model(model, loss_func, contrast_loss_fn, lr_scheduler, optimizer_ft, args, data_loaders, scaler,
+                        num_epochs=10)  # 70
 
 
 # Execute from the interpreter
