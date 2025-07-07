@@ -455,7 +455,7 @@ def main():
 
     # Train and save the best model
     model = train_model(model, loss_func, contrast_loss_fn, lr_scheduler, optimizer_ft, args, data_loaders, scaler,
-                        num_epochs=10)  # 70
+                        num_epochs=70)  # 70
 
 
 # Execute from the interpreter
