@@ -111,7 +111,8 @@ def train_model(model, loss_func, contrast_loss_fn, lr_scheduler, optimizer, arg
                         score, features1, features2 = model(inputs)
                         # score = score[-1]  # To check if txt-img only is working when using interaction_network.
                 elif args.fp16 or args.bf16:
-                    with torch.amp.autocast(device_type='cuda', dtype=torch.float16 if args.fp16 else torch.bfloat16):
+                    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                    with torch.amp.autocast(device_type=device, dtype=torch.float16 if args.fp16 else torch.bfloat16):
                         score, features1, features2 = model(inputs)
                         # score = score[-1]  # To check if txt-img only is working when using interaction_network.
                 else:
