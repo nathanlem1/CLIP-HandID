@@ -1,11 +1,14 @@
 # CLIP-HandID: Vision-Language Model for Hand-Based Person Identification
 
 
-Code for paper [CLIP-HandID: Vision-Language Model for Hand-Based Person Identification](https://arxiv.org/abs/2506.12447).
 <!--
+Code for paper [CLIP-HandID: Vision-Language Model for Hand-Based Person Identification](https://arxiv.org/abs/2506.12447).
 Code for paper [CLIP-HandID: Vision-Language Model for Hand-Based Person Identification](conference or arXiv link) 
 which has been published on [IPTA 2025](https://ipta-conference.com/ipta25/index.php).
 -->
+
+This code implements the paper [CLIP-HandID: Vision-Language Model for Hand-Based Person Identification](https://ieeexplore.ieee.org/document/11222062) 
+which has been published on [IPTA 2025](https://ipta-conference.com/ipta25/index.php).
 
 ## Overview
 This paper introduces a new approach to person identification based on hand images, designed specifically for criminal 
@@ -131,14 +134,16 @@ You also need to change the output folder name `clip_hand_vit` to `clip_hand_rn5
 If you use this code for your research, please cite our paper.
 
 ```
-@misc{Baisa2025,
-      title={CLIP-HandID: Vision-Language Model for Hand-Based Person Identification}, 
-      author={Nathanael L. Baisa and Babu Pallam and Amudhavel Jayavel},
-      year={2025},
-      eprint={2506.12447},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2506.12447}, 
-}
+@INPROCEEDINGS{11222062,
+  author={Baisa, Nathanael L. and Pallam, Babu and Jayavel, Amudhavel},
+  booktitle={2025 Fourteenth International Conference on Image Processing, Theory, Tools & Applications (IPTA)}, 
+  title={CLIP-HandID: Vision-Language Model for Hand-Based Person Identification}, 
+  year={2025},
+  volume={},
+  number={},
+  pages={1-6},
+  keywords={Hands;Representation learning;Visualization;Adaptation models;Technological innovation;Forensics;Biological system modeling;Source coding;Semantics;Cognition;Person identification;Hand recognition;Multi-modal deep learning;Vision-Language;CLIP model},
+  doi={10.1109/IPTA66025.2025.11222062}
+ }
 ```
 
